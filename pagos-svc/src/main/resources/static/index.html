@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagos | Microservicio de pagos</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            color: #ffffff;
+        }
+        main {
+            text-align: center;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 3rem;
+            margin: 0 0 1rem;
+        }
+        p {
+            font-size: 1.2rem;
+            max-width: 640px;
+            line-height: 1.6;
+        }
+        a {
+            display: inline-block;
+            margin: 0.75rem;
+            padding: 0.7rem 1.5rem;
+            background: #ffffff;
+            color: #1e3a8a;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        a:hover {
+            background: #dbeafe;
+        }
+        footer {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.85;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Microservicio pagos</h1>
+        <p>
+            Servicio REST para la gestion de pagos, construido con Spring Boot 3.3,
+            Java 21 y Docker. Proyecto base para el pipeline DevOps del semestre.
+        </p>
+        <nav>
+            <a href="/api/pagos">API de pagos</a>
+            <a href="/swagger-ui/index.html">Swagger UI</a>
+            <a href="/h2-console">Consola H2</a>
+        </nav>
+        <footer>Microservicio pagos · EP01 · Gestionado con GitFlow v1.0.0</footer>
+    </main>
+</body>
+</html>

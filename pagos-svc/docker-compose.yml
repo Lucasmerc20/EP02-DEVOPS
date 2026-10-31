@@ -1,0 +1,24 @@
+services:
+  pagos:
+    # en el pipeline IMAGEN trae el tag con el SHA del commit
+    image: ${IMAGEN:-pagos-svc:local}
+    build: .
+    # un puerto por replica (8080 y 8081)
+    ports:
+      - "8080-8081:8080"
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    restart: unless-stopped

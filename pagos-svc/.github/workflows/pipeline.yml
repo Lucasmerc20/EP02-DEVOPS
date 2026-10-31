@@ -1,0 +1,113 @@
+name: Pipeline CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  # imagen versionada con el SHA del commit (trazabilidad)
+  IMAGEN: ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+jobs:
+  pruebas:
+    name: Pruebas unitarias y cobertura
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # mvn verify falla si una prueba falla o si la cobertura baja del 100%
+      - name: Ejecutar pruebas
+        run: mvn -B verify
+
+      - name: Guardar reporte de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-jacoco
+          path: target/site/jacoco/
+
+  seguridad:
+    name: Analisis de seguridad (Snyk)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # si encuentra vulnerabilidades altas o criticas el job falla y se bloquea el despliegue
+      - name: Escanear dependencias
+        uses: snyk/actions/maven-3-jdk-21@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  construir:
+    name: Construir imagen Docker
+    needs: [pruebas, seguridad]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construir imagen
+        run: docker build -t $IMAGEN .
+
+      - name: Login en GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publicar imagen
+        if: github.event_name == 'push'
+        run: docker push $IMAGEN
+
+  desplegar:
+    name: Despliegue en entorno simulado
+    needs: construir
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login en GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # se despliega la misma imagen que se construyo y probo
+      - name: Levantar servicio con Docker Compose
+        run: |
+          docker compose pull
+          docker compose up -d --no-build --wait
+
+      - name: Verificar despliegue
+        run: |
+          curl --fail http://localhost:8080/actuator/health
+          curl --fail http://localhost:8081/actuator/health
+          curl --fail http://localhost:8080/api/pagos
+
+      - name: Registro del despliegue
+        if: always()
+        run: |
+          echo "Commit: $GITHUB_SHA"
+          echo "Imagen: $IMAGEN"
+          echo "Rama: $GITHUB_REF_NAME"
+          docker compose ps
+          docker compose logs --tail=50
